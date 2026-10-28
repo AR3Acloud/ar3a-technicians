@@ -151,5 +151,143 @@ $("exportCsv").addEventListener("click",()=>{const items=readRequests();const co
 $("clearRequests").addEventListener("click",()=>{if(confirm("Permanently clear every request stored in this browser? Export a backup first if needed.")){saveRequests([]);renderDashboard()}});
 $("changePin").addEventListener("click",()=>{const old=prompt("Enter current owner PIN");if(old!==localStorage.getItem(PIN_KEY)){alert("Incorrect PIN.");return}const next=prompt("Enter new PIN (at least 4 characters)");if(next&&next.length>=4){localStorage.setItem(PIN_KEY,next);alert("PIN changed on this browser.")}else alert("PIN was not changed.")});
 </script>
+  
+<!-- AR3A Technicians Floating Enquiry Chat -->
+<style>
+  #ar3a-chat-button {
+    position: fixed; right: 20px; bottom: 20px; z-index: 99999;
+    background: #f5c400; color: #111; border: 2px solid #111;
+    border-radius: 30px; padding: 14px 20px; font-weight: 700;
+    cursor: pointer; box-shadow: 0 4px 16px #0003;
+  }
+  #ar3a-chat-panel {
+    display: none; position: fixed; right: 16px; bottom: 82px;
+    width: min(360px, calc(100vw - 32px)); max-height: 75vh;
+    overflow-y: auto; z-index: 99999; background: #fff; color: #222;
+    border: 1px solid #ddd; border-radius: 16px;
+    box-shadow: 0 8px 30px #0003; font: 15px Arial, sans-serif;
+  }
+  #ar3a-chat-panel * { box-sizing: border-box; }
+  #ar3a-chat-head {
+    background: #171717; color: #fff; padding: 16px;
+    border-radius: 15px 15px 0 0;
+  }
+  #ar3a-chat-head button {
+    float: right; background: none; color: white;
+    border: 0; font-size: 22px; cursor: pointer;
+  }
+  #ar3a-chat-form { padding: 16px; }
+  #ar3a-chat-form input, #ar3a-chat-form select,
+  #ar3a-chat-form textarea {
+    width: 100%; margin: 6px 0 12px; padding: 11px;
+    border: 1px solid #ccc; border-radius: 8px; font: inherit;
+  }
+  #ar3a-chat-form textarea { min-height: 85px; resize: vertical; }
+  #ar3a-chat-form button[type="submit"] {
+    width: 100%; background: #f5c400; color: #111;
+    border: 0; border-radius: 8px; padding: 13px;
+    font-weight: 700; cursor: pointer;
+  }
+  #ar3a-chat-status { margin-top: 12px; line-height: 1.5; }
+</style>
+
+<button id="ar3a-chat-button" type="button"
+  aria-label="Chat with AR3A Technicians">💬 Chat with AR3A</button>
+
+<section id="ar3a-chat-panel" aria-label="AR3A customer enquiries">
+  <div id="ar3a-chat-head">
+    <button type="button" id="ar3a-chat-close" aria-label="Close chat">×</button>
+    <strong>AR3A Technicians</strong><br>
+    <small>Tell us how we can help you.</small>
+  </div>
+
+  <form id="ar3a-chat-form">
+    <label>Your name
+      <input name="customer_name" maxlength="120" required>
+    </label>
+    <label>Phone number
+      <input name="phone" type="tel" maxlength="40" required>
+    </label>
+    <label>What do you need?
+      <select name="enquiry_type" required>
+        <option value="repair">Appliance repair</option>
+        <option value="installation">Installation</option>
+        <option value="procurement">Purchase / procurement</option>
+        <option value="maintenance">Maintenance</option>
+        <option value="consultation">Consultation</option>
+        <option value="general">Other enquiry</option>
+      </select>
+    </label>
+    <label>Appliance or product
+      <input name="appliance_or_product" maxlength="120"
+        placeholder="e.g. washing machine, TV, AC">
+    </label>
+    <label>Your location
+      <input name="customer_location" maxlength="200"
+        placeholder="e.g. Sangotedo, Lagos">
+    </label>
+    <label>How can we help?
+      <textarea name="message" maxlength="3000" required
+        placeholder="Describe what you need..."></textarea>
+    </label>
+    <button type="submit">Send enquiry</button>
+    <div id="ar3a-chat-status" role="status"></div>
+    <p style="font-size:12px;color:#666">
+      Your details will be sent to AR3A Technicians to respond to your enquiry.
+    </p>
+  </form>
+</section>
+
+<script>
+(function () {
+  const panel = document.getElementById("ar3a-chat-panel");
+  const form = document.getElementById("ar3a-chat-form");
+  const status = document.getElementById("ar3a-chat-status");
+  const button = document.getElementById("ar3a-chat-button");
+  const endpoint =
+    "https://dwpcavbgwmfwqejrpezl.supabase.co/functions/v1/ar3a-assistant";
+
+  button.addEventListener("click", function () {
+    panel.style.display = panel.style.display === "block" ? "none" : "block";
+  });
+
+  document.getElementById("ar3a-chat-close").addEventListener("click", function () {
+    panel.style.display = "none";
+  });
+
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    const submitButton = form.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    status.textContent = "Sending your enquiry...";
+
+    const fields = new FormData(form);
+    const payload = Object.fromEntries(fields.entries());
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Please try again.");
+      }
+
+      status.textContent =
+        "Thank you! Your enquiry has been received. AR3A Technicians will follow up.";
+      form.reset();
+    } catch (error) {
+      status.textContent =
+        "We couldn't send your enquiry right now. Please try again later or contact us on WhatsApp.";
+    } finally {
+      submitButton.disabled = false;
+    }
+  });
+})();
+</script>
+  
 </body>
 </html>
